@@ -32,6 +32,8 @@ class ApiService {
 
   bool get hasTokens => _accessToken != null;
 
+  String? get accessToken => _accessToken;
+
   Map<String, String> get _headers {
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (_accessToken != null) {
