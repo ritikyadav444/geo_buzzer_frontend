@@ -45,7 +45,15 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
     final currentUserId = authState.user?.id ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Connections')),
+      appBar: AppBar(
+        title: const Text('Connections'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authProvider.notifier).logout(),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

@@ -66,6 +66,26 @@ class AlarmNotifier extends StateNotifier<AlarmState> {
     }
   }
 
+  Future<bool> createSequenceGroup({
+    required List<Map<String, dynamic>> alarmDefs,
+  }) async {
+    final groupId = DateTime.now().millisecondsSinceEpoch.toString();
+    for (int i = 0; i < alarmDefs.length; i++) {
+      final def = alarmDefs[i];
+      final success = await createAlarm(
+        targetIds: List<String>.from(def['targetIds']),
+        lat: def['lat'] as double,
+        lng: def['lng'] as double,
+        radiusMeters: (def['radiusMeters'] as num?)?.toDouble() ?? 150,
+        label: def['label'] as String? ?? '',
+        sequenceGroup: groupId,
+        sequenceOrder: i,
+      );
+      if (!success) return false;
+    }
+    return true;
+  }
+
   Future<void> cancelAlarm(String id) async {
     await _api.post('${ApiConfig.alarms}/$id/cancel', {});
     await loadMyAlarms();
