@@ -30,7 +30,7 @@ class GeofenceMonitor {
   }
 
   Future<void> _check() async {
-    final alarms = _ref.read(alarmProvider).targetingMe;
+    final alarms = _ref.read(alarmProvider).myAlarms.where((a) => a.status == 'active').toList();
     if (alarms.isEmpty) return;
 
     final position = await _locationService.getCurrentPosition();
