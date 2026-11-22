@@ -27,7 +27,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> checkAuth() async {
     await _api.loadTokens();
     if (_api.hasTokens) {
-      state = state.copyWith(user: UserModel(id: '', name: '', username: '', email: ''));
+      try {
+        final data = await _api.get(ApiConfig.me);
+        state = state.copyWith(user: UserModel.fromJson(data));
+      } catch (_) {
+        await _api.clearTokens();
+      }
     }
   }
 

@@ -1,6 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:async';
 import '../../models/alarm.dart';
+
+// Web Audio API fallback
+import 'alarm_sound_web.dart' if (dart.library.io) 'alarm_sound_stub.dart';
 
 class FullScreenAlert extends StatefulWidget {
   final AlarmModel alarm;
@@ -16,6 +21,7 @@ class _FullScreenAlertState extends State<FullScreenAlert> with SingleTickerProv
   final AudioPlayer _player = AudioPlayer();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  bool _usingWebFallback = false;
 
   @override
   void initState() {
@@ -26,16 +32,27 @@ class _FullScreenAlertState extends State<FullScreenAlert> with SingleTickerProv
   }
 
   Future<void> _playAlarm() async {
-    await _player.setReleaseMode(ReleaseMode.loop);
-    // Uses the default system notification sound — for a custom tune, bundle an asset
-    await _player.play(AssetSource('alarm.mp3')).catchError((_) {
-      // If no asset, fall back silently — the visual alert still works
-    });
+    try {
+      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.play(AssetSource('alarm.wav'));
+    } catch (_) {
+      if (kIsWeb) {
+        _usingWebFallback = true;
+        startWebAlarm();
+      }
+    }
+  }
+
+  void _stopAlarm() {
+    _player.stop();
+    if (_usingWebFallback) {
+      stopWebAlarm();
+    }
   }
 
   @override
   void dispose() {
-    _player.stop();
+    _stopAlarm();
     _player.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -72,7 +89,7 @@ class _FullScreenAlertState extends State<FullScreenAlert> with SingleTickerProv
                 const SizedBox(height: 64),
                 GestureDetector(
                   onTap: () {
-                    _player.stop();
+                    _stopAlarm();
                     widget.onDismiss();
                   },
                   child: Container(

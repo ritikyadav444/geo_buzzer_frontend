@@ -67,6 +67,29 @@ class ApiService {
     return data;
   }
 
+  Future<Map<String, dynamic>> get(String path) async {
+    var response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}$path'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 401 && _refreshToken != null) {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        response = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}$path'),
+          headers: _headers,
+        );
+      }
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw ApiException(data['error'] ?? 'Request failed', response.statusCode);
+    }
+    return data;
+  }
+
   Future<List<dynamic>> getList(String path) async {
     var response = await http.get(
       Uri.parse('${ApiConfig.baseUrl}$path'),
