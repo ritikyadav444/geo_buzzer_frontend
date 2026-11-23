@@ -10,8 +10,10 @@ import 'alarm_sound_web.dart' if (dart.library.io) 'alarm_sound_stub.dart';
 class FullScreenAlert extends StatefulWidget {
   final AlarmModel alarm;
   final VoidCallback onDismiss;
+  final String? triggeredByName;
+  final String? triggeredByUsername;
 
-  const FullScreenAlert({super.key, required this.alarm, required this.onDismiss});
+  const FullScreenAlert({super.key, required this.alarm, required this.onDismiss, this.triggeredByName, this.triggeredByUsername});
 
   @override
   State<FullScreenAlert> createState() => _FullScreenAlertState();
@@ -79,10 +81,27 @@ class _FullScreenAlertState extends State<FullScreenAlert> with SingleTickerProv
                   child: const Icon(Icons.location_pin, size: 120, color: Colors.white),
                 ),
                 const SizedBox(height: 32),
-                const Text("You've arrived!", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(
+                  widget.triggeredByName != null
+                      ? '${widget.triggeredByName} has arrived!'
+                      : "You've arrived!",
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                if (widget.triggeredByUsername != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '@${widget.triggeredByUsername}',
+                    style: const TextStyle(fontSize: 16, color: Colors.white60),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Text(
-                  widget.alarm.label.isNotEmpty ? widget.alarm.label : 'You reached the target location',
+                  widget.alarm.label.isNotEmpty
+                      ? widget.alarm.label
+                      : widget.triggeredByName != null
+                          ? '${widget.triggeredByName} reached the target location'
+                          : 'You reached the target location',
                   style: const TextStyle(fontSize: 18, color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),

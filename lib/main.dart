@@ -104,12 +104,24 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
     ref.read(alarmProvider.notifier).loadTargetingMe();
 
     final monitor = ref.read(geofenceMonitorProvider);
-    monitor.onAlarmTriggered = _showAlert;
+    monitor.onAlarmTriggered = null;
     monitor.start();
 
     _socketService.onAlarmCreated = (_) => ref.read(alarmProvider.notifier).loadTargetingMe();
     _socketService.onAlarmCancelled = (_) => ref.read(alarmProvider.notifier).loadTargetingMe();
-    _socketService.onAlarmTriggered = (_) => ref.read(alarmProvider.notifier).loadMyAlarms();
+    _socketService.onAlarmTriggered = (data) {
+      ref.read(alarmProvider.notifier).loadMyAlarms();
+      final triggeredBy = data['triggeredBy'] as Map<String, dynamic>?;
+      final alarm = AlarmModel(
+        id: data['alarmId'] ?? '',
+        location: AlarmLocation(
+          lat: (data['location']?['lat'] as num?)?.toDouble() ?? 0,
+          lng: (data['location']?['lng'] as num?)?.toDouble() ?? 0,
+        ),
+        label: data['label'] ?? '',
+      );
+      _showAlertWithInfo(alarm, triggeredBy?['name'], triggeredBy?['username']);
+    };
 
     final token = ref.read(apiServiceProvider).accessToken;
     if (token != null) {
@@ -117,7 +129,7 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
     }
   }
 
-  void _showAlert(AlarmModel alarm) {
+  void _showAlertWithInfo(AlarmModel alarm, String? name, String? username) {
     if (_alertShowing) return;
     _alertShowing = true;
     Navigator.of(context).push(
@@ -125,6 +137,8 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
         fullscreenDialog: true,
         builder: (_) => FullScreenAlert(
           alarm: alarm,
+          triggeredByName: name,
+          triggeredByUsername: username,
           onDismiss: () {
             _alertShowing = false;
             Navigator.of(context).pop();
