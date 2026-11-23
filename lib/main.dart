@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'providers/alarm_provider.dart';
 import 'providers/location_provider.dart';
 import 'services/socket_service.dart';
+import 'services/foreground_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/map/map_screen.dart';
 import 'screens/alarms/my_alarms_screen.dart';
@@ -87,20 +88,22 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
     WidgetsBinding.instance.removeObserver(this);
     ref.read(geofenceMonitorProvider).stop();
     _socketService.disconnect();
+    stopTracking();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.read(geofenceMonitorProvider).start();
       ref.read(alarmProvider.notifier).loadTargetingMe();
-    } else if (state == AppLifecycleState.paused) {
-      ref.read(geofenceMonitorProvider).stop();
     }
   }
 
-  void _startServices() {
+  void _startServices() async {
+    initForegroundTask();
+    await requestPermissions();
+    await startTracking();
+
     ref.read(alarmProvider.notifier).loadTargetingMe();
 
     final monitor = ref.read(geofenceMonitorProvider);
