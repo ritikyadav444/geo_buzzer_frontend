@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/alarm.dart';
 import '../services/location_service.dart';
 import 'alarm_provider.dart';
@@ -12,33 +13,54 @@ final geofenceMonitorProvider = Provider<GeofenceMonitor>((ref) {
 
 class GeofenceMonitor {
   final Ref _ref;
-  Timer? _timer;
+  StreamSubscription<Position>? _positionSub;
+  Timer? _fallbackTimer;
   final LocationService _locationService = LocationService();
   void Function(AlarmModel alarm)? onAlarmTriggered;
+  final Set<String> _alreadyTriggered = {};
 
   GeofenceMonitor(this._ref);
 
   void start() {
     stop();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _check());
-    _check();
+    _alreadyTriggered.clear();
+
+    _positionSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).listen((position) {
+      _checkPosition(position);
+    });
+
+    _fallbackTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      final position = await _locationService.getCurrentPosition();
+      if (position != null) _checkPosition(position);
+    });
+
+    _locationService.getCurrentPosition().then((pos) {
+      if (pos != null) _checkPosition(pos);
+    });
   }
 
   void stop() {
-    _timer?.cancel();
-    _timer = null;
+    _positionSub?.cancel();
+    _positionSub = null;
+    _fallbackTimer?.cancel();
+    _fallbackTimer = null;
   }
 
-  Future<void> _check() async {
-    final alarms = _ref.read(alarmProvider).myAlarms.where((a) => a.status == 'active').toList();
+  void _checkPosition(Position position) {
+    final alarms = _ref.read(alarmProvider).myAlarms
+        .where((a) => a.status == 'active' && !_alreadyTriggered.contains(a.id))
+        .toList();
     if (alarms.isEmpty) return;
-
-    final position = await _locationService.getCurrentPosition();
-    if (position == null) return;
 
     final triggered = _locationService.checkGeofences(alarms, position);
     for (final alarm in triggered) {
-      await _ref.read(alarmProvider.notifier).triggerAlarm(alarm.id, position.latitude, position.longitude);
+      _alreadyTriggered.add(alarm.id);
+      _ref.read(alarmProvider.notifier).triggerAlarm(alarm.id, position.latitude, position.longitude);
       onAlarmTriggered?.call(alarm);
     }
   }

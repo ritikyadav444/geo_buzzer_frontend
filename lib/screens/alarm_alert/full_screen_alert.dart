@@ -83,18 +83,11 @@ class _FullScreenAlertState extends State<FullScreenAlert> with SingleTickerProv
                 const SizedBox(height: 32),
                 Text(
                   widget.triggeredByName != null
-                      ? '${widget.triggeredByName} has arrived!'
+                      ? '${widget.triggeredByName} (${widget.triggeredByUsername ?? ''}) has arrived!'
                       : "You've arrived!",
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                   textAlign: TextAlign.center,
                 ),
-                if (widget.triggeredByUsername != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '@${widget.triggeredByUsername}',
-                    style: const TextStyle(fontSize: 16, color: Colors.white60),
-                  ),
-                ],
                 const SizedBox(height: 16),
                 Text(
                   widget.alarm.label.isNotEmpty
